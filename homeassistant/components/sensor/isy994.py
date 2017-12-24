@@ -9,7 +9,7 @@ from typing import Callable  # noqa
 
 import homeassistant.components.isy994 as isy
 from homeassistant.const import (
-    TEMP_CELSIUS, TEMP_FAHRENHEIT, STATE_OFF, STATE_ON)
+    TEMP_CELSIUS, TEMP_FAHRENHEIT, STATE_OFF, STATE_ON, UNIT_UV_INDEX)
 from homeassistant.helpers.typing import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,7 +77,7 @@ UOM_FRIENDLY_NAME = {
     '64': 'shindo',
     '65': 'SML',
     '69': 'gal',
-    '71': 'UV index',
+    '71': UNIT_UV_INDEX,
     '72': 'V',
     '73': 'W',
     '74': 'W/m²',
@@ -282,6 +282,9 @@ class ISYSensorDevice(isy.ISYDevice):
     @property
     def state(self) -> str:
         """Get the state of the ISY994 sensor device."""
+        if self.is_unknown():
+            return None
+
         if len(self._node.uom) == 1:
             if self._node.uom[0] in UOM_TO_STATES:
                 states = UOM_TO_STATES.get(self._node.uom[0])
@@ -310,8 +313,7 @@ class ISYSensorDevice(isy.ISYDevice):
         raw_units = self.raw_unit_of_measurement
         if raw_units in (TEMP_FAHRENHEIT, TEMP_CELSIUS):
             return self.hass.config.units.temperature_unit
-        else:
-            return raw_units
+        return raw_units
 
 
 class ISYWeatherDevice(isy.ISYDevice):

@@ -15,8 +15,9 @@ from homeassistant.const import (
     TEMP_CELSIUS, CONF_MONITORED_CONDITIONS, CONF_NAME, STATE_UNKNOWN,
     ATTR_ATTRIBUTION)
 from homeassistant.helpers.entity import Entity
+from homeassistant.util import Throttle
 
-REQUIREMENTS = ['yahooweather==0.8']
+REQUIREMENTS = ['yahooweather==0.9']
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ CONF_WOEID = 'woeid'
 
 DEFAULT_NAME = 'Yweather'
 
-SCAN_INTERVAL = timedelta(minutes=10)
+MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=10)
 
 SENSOR_TYPES = {
     'weather_current': ['Current', None],
@@ -159,13 +160,15 @@ class YahooWeatherSensor(Entity):
             self._code = self._data.yahoo.Forecast[self._forecast]['code']
             self._state = self._data.yahoo.Forecast[self._forecast]['high']
         elif self._type == 'wind_speed':
-            self._state = self._data.yahoo.Wind['speed']
+            self._state = round(float(self._data.yahoo.Wind['speed'])/1.61, 2)
         elif self._type == 'humidity':
             self._state = self._data.yahoo.Atmosphere['humidity']
         elif self._type == 'pressure':
-            self._state = self._data.yahoo.Atmosphere['pressure']
+            self._state = round(
+                float(self._data.yahoo.Atmosphere['pressure'])/33.8637526, 2)
         elif self._type == 'visibility':
-            self._state = self._data.yahoo.Atmosphere['visibility']
+            self._state = round(
+                float(self._data.yahoo.Atmosphere['visibility'])/1.61, 2)
 
 
 class YahooWeatherData(object):
@@ -181,6 +184,7 @@ class YahooWeatherData(object):
         """Return Yahoo! API object."""
         return self._yahoo
 
+    @Throttle(MIN_TIME_BETWEEN_UPDATES)
     def update(self):
         """Get the latest data from Yahoo!."""
         return self._yahoo.updateWeather()

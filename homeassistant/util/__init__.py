@@ -56,8 +56,8 @@ def repr_helper(inp: Any) -> str:
             in inp.items())
     elif isinstance(inp, datetime):
         return as_local(inp).isoformat()
-    else:
-        return str(inp)
+
+    return str(inp)
 
 
 def convert(value: T, to_type: Callable[[T], U],
@@ -99,7 +99,10 @@ def get_local_ip():
 
         return sock.getsockname()[0]
     except socket.error:
-        return socket.gethostbyname(socket.gethostname())
+        try:
+            return socket.gethostbyname(socket.gethostname())
+        except socket.gaierror:
+            return '127.0.0.1'
     finally:
         sock.close()
 
@@ -265,7 +268,7 @@ class Throttle(object):
 
         # We want to be able to differentiate between function and unbound
         # methods (which are considered functions).
-        # All methods have the classname in their qualname seperated by a '.'
+        # All methods have the classname in their qualname separated by a '.'
         # Functions have a '.' in their qualname if defined inline, but will
         # be prefixed by '.<locals>.' so we strip that out.
         is_func = (not hasattr(method, '__self__') and
@@ -296,15 +299,15 @@ class Throttle(object):
                 return None
 
             # Check if method is never called or no_throttle is given
-            force = not throttle[1] or kwargs.pop('no_throttle', False)
+            force = kwargs.pop('no_throttle', False) or not throttle[1]
 
             try:
                 if force or utcnow() - throttle[1] > self.min_time:
                     result = method(*args, **kwargs)
                     throttle[1] = utcnow()
                     return result
-                else:
-                    return None
+
+                return None
             finally:
                 throttle[0].release()
 
